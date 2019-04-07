@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC  
+    "-//mybatis.org//DTD Mapper 3.0//EN"  
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd"> 
+
+<!--namespace="对应的是持久层的接口类路径【切记路径到它的类那】"-->  
+<mapper namespace="com.fh.shop.backend.mapper.area.IAreaMapper">
+	<!-- 查询 -->
+	<select id="findAreaList" resultType="area">
+	   select id,pid,name from province_city_county
+	</select>
+
+    <!--新增-->
+	<insert id="showAddArea" parameterType="area">
+       <selectKey keyProperty="id" order="AFTER" resultType="int">
+		select last_insert_id()
+		</selectKey>
+		insert into province_city_county (pid,name) values(#{pid},#{name})
+	</insert>
+	<!--如果删除的id是父节点的话 它的子节点的父节点都是当前id
+       所以根据父节点查看-->
+	<!--<select id="findDeptById" resultType="dept" parameterType="int">-->
+	   <!--select id,fatherid,deptName from t_dept where fatherid=#{value}-->
+	<!--</select>-->
+	<!--删除项目-->
+	<delete id="deleteDept">
+	     delete from province_city_county where id in
+	        <foreach collection="list" item="aa" separator="," open="(" close=")">
+               #{aa}
+			</foreach>
+    </delete>
+
+	<!--修改-->
+	<update id="editAreaDlg" parameterType="area">
+	  update province_city_county set name = #{name} where id = #{id}
+	</update>
+
+
+
+
+</mapper>

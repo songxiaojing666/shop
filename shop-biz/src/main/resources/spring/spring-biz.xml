@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="GBK"?>
+<beans xmlns="http://www.springframework.org/schema/beans"  
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+    xmlns:aop="http://www.springframework.org/schema/aop"  
+    xmlns:context="http://www.springframework.org/schema/context" 
+    xmlns:tx="http://www.springframework.org/schema/tx"  
+    xmlns:jpa="http://www.springframework.org/schema/data/jpa"  
+    xmlns:security="http://www.springframework.org/schema/security" 
+    xmlns:mvc="http://www.springframework.org/schema/mvc" 
+    xsi:schemaLocation="  
+        http://www.springframework.org/schema/aop   
+        http://www.springframework.org/schema/aop/spring-aop-4.0.xsd  
+        http://www.springframework.org/schema/security   
+        http://www.springframework.org/schema/security/spring-security-3.2.xsd  
+        http://www.springframework.org/schema/beans   
+        http://www.springframework.org/schema/beans/spring-beans-4.0.xsd  
+        http://www.springframework.org/schema/data/jpa   
+        http://www.springframework.org/schema/data/jpa/spring-jpa-1.3.xsd  
+        http://www.springframework.org/schema/tx   
+        http://www.springframework.org/schema/tx/spring-tx-4.0.xsd  
+        http://www.springframework.org/schema/mvc   
+    	http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd
+        http://www.springframework.org/schema/context   
+        http://www.springframework.org/schema/context/spring-context-4.0.xsd">
+
+    <import resource="spring-dao.xml"/>
+    <!-- 配置事物以下三点 -->
+    <!-- 这个和数据库建立连接  ref="dataBaseInfo"对应的是配置数据源bean的id-->
+    <bean id="txManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <!--  name可以改但是不建议改,改的话还要在源代码里面也要改 -->
+        <property name="dataSource" ref="dataBaseInfo"/>
+    </bean>
+
+    <!-- 配置事务的传播特性 -->
+    <!--  transaction-manager="txManager"对应的是连接数据库的那个bean的id="txManager" -->
+    <tx:advice id="txAdvice" transaction-manager="txManager"><!-- 配置事务管理器 -->
+        <tx:attributes>
+            <tx:method name="add*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="insert*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="save*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="del*" propagation="REQUIRED"  rollback-for="Exception"/>
+            <tx:method name="modify*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="upda*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="edit*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="show*" propagation="REQUIRED" rollback-for="Exception"/>
+
+            <!--     这个是有顺序安排的如果写在上面就是全部方法走的都是只读事物
+                而在下面就是除了上面那些增删改的前缀符合要求的方法不走只读事物其他的都走只读方法 -->
+            <tx:method name="*" read-only="true"/>
+            <!-- 如果不是以上三种，则配置成只读事务(如select)。只读事务可以提高性能，当更新某个对象时，将不会再做脏数据检查。(因为是只读的并不用更新，所以不用再作比较,判断是否读取到脏数据。) -->
+        </tx:attributes>
+    </tx:advice>
+
+    <!-- .. 代表改包下任意嵌套层次的子包 -->
+    <!--  advice-ref="txAdvice"对应的是配置事务的传播特性中id="txAdvice"名称 -->
+    <aop:config>
+        <aop:advisor pointcut="execution(* com.fh.shop.backend.biz..*.*(..))" advice-ref="txAdvice"/>
+    </aop:config>
+
+    <!-- @ResponseBody起作用?
+    1.首先在pom.xml中导入jackson的依赖
+    2.开启注解驱动 -->
+        <mvc:annotation-driven/>
+        
+    <!-- 对项目中的所有类进行扫描以完成Bean创建并进行自动注入。  
+           支持 @Controller、@Service 以及 @Repository 和 @Component -->
+	<!-- 扫描项目中com.fh.shop.controller包下所有的类，从而使类中的@Controller注解生效 -->
+    <!-- 控制层action -->
+    <context:component-scan base-package="com.fh.shop.backend.controller"/>
+    <!--扫描接口的action层注解-->
+    <context:component-scan base-package="com.fh.shop.backend.api"/>
+	
+
+	<!--
+        jsp视图解析器，对模型视图名称的解析，即在模型视图名称添加前后缀
+        如/view/welcome.jsp对应的视图名就是：welcome
+        这个类在视图解析器链中一定要定义在其他视图的后面，因为它始终会返回一个视图
+    -->
+    <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="prefix" value="/WEB-INF/view/"/><!-- 前缀的路径 -->
+        <property name="suffix" value=".jsp"/><!-- 后缀 -->
+    </bean>
+    
+    <!-- 【扫描@DateTimeFormat注解】加载@DateTimeFormat-->
+    <mvc:annotation-driven conversion-service="conversionService"/>
+    
+    <bean id="conversionService"
+          class="org.springframework.format.support.FormattingConversionServiceFactoryBean">
+     </bean>
+     
+     <!-- 配置Aop -->
+     <!--InfoAspect infoaspect=new com.fh.shop.backend.aspect.InfoAspect-->
+     <!--实例化对象 -->
+     <bean id="logAspect" class="com.fh.shop.backend.aspect.LogAspect"></bean>
+     <aop:config>
+        <!-- 切面【指定的是非核心业务逻辑类】 -->
+        <aop:aspect ref="logAspect">
+           <!--切点  -->
+           <aop:pointcut expression="execution(* com.fh.shop.backend.controller..*.add*(..))||execution(* com.fh.shop.backend.controller..*.del*(..))||execution(* com.fh.shop.backend.controller..*.update*(..))||execution(* com.fh.shop.backend.controller..*.log*(..))" id="pointcut"/>
+           <!--方位为环绕功能最强大  【method="aspect"是非核心业务逻辑类的方法名】-->
+           <aop:around method="logAspect" pointcut-ref="pointcut"/>
+        </aop:aspect>
+     </aop:config>
+
+     <!-- 文件上传 -->
+      <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+        <property name="maxUploadSize">
+            <value>5242880</value>
+        </property>
+      </bean>
+
+         <!--SpringMvc 拦截器 -->
+	   <mvc:interceptors>
+	     <!-- 可以有多个拦截器进行拦截【有顺序执行】 -->
+         <mvc:interceptor>
+         <!--【/**拦截所有匹配路径】  但是后缀名为.jsp的不进行拦截因为没有交给SpringMvc进行管理,在这个项目中以.jhtml的后缀名拦截-->
+              <mvc:mapping path="/**"/>
+              <!-- 拦截器的路径 -->
+              <bean id="loginInterceptor" class="com.fh.shop.backend.interceptor.LoginInterceptor">
+              </bean>
+          </mvc:interceptor>
+    </mvc:interceptors>
+    
+
+	
+     
+</beans>

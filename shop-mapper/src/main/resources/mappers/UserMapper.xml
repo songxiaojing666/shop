@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC  
+    "-//mybatis.org//DTD Mapper 3.0//EN"  
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd"> 
+
+<!--namespace="对应的是持久层的接口类路径【切记路径到它的类那】"-->  
+<mapper namespace="com.fh.shop.backend.mapper.user.IUserMapper">
+	<!--  1.id对应的是接口中的方法【parameterType=""传递参数】 
+	2.【返回值:resultType=""】
+	3.通过#{}来获取对应属性的属性值
+	4.参数多时把它当成javabean中的一个属性。
+	5.insert into 表名 (数据库中的字段名) values (#{实体类中的字段名1},#{实体类中的字段名2},#{实体类中的字段名3})
+	【!!!!!!!!!!字段名可以和实体类中的属性名不一样】
+	-->
+	<!--1.将表里面的字段和对应的javabean中的属性进行映射【查询】
+	  2.给表中的字段起别名，使别名和属性名保持一致。
+	 -->
+	<!-- type指明javabean -->
+	<resultMap id="productMap" type="user">
+	    <!--column对应的是字段名【property对应的是属性名】  -->
+		<result column="id" property="id"/>
+		<result column="username" property="userName"/>
+		<result column="userPassword" property="userPassword"/>
+		<result column="salt" property="salt"/>
+		<result column="loginTimes" property="loginTimes"/>
+		<result column="frequency" property="frequency"/>
+		<result column="errorcount" property="errorcount"/>
+		<result column="errorloginTimes" property="errorloginTimes"/>
+		<result column="status" property="status"/>
+
+		<result column="userRealName" property="userRealName"/>
+		<result column="birthday" property="birthday"/>
+		<result column="sex" property="sex"/>
+		<result column="salary" property="salary"/>
+		<result column="deptid" property="deptid"/>
+		<result column="deptName" property="deptName"/>
+		<result column="headerPath" property="headerPath"/>
+	</resultMap>
+
+	<select id="finduser" parameterType="string" resultMap="productMap">
+	  select id,username,userPassword,salt,loginTimes,frequency,errorcount,errorloginTimes,status from t_user where username=#{userName}
+	</select>
+
+	<!--注册账号-->
+	<insert id="addUser" parameterType="user">
+		insert into t_user (username,userPassword,salt,loginTimes,frequency,status,userRealName,birthday,sex,salary,deptid,headerPath) values (#{userName},#{userPassword},#{salt},#{loginTimes},#{frequency},#{status},#{userRealName},#{birthday},#{sex},#{salary},#{deptid},#{headerPath})
+	</insert>
+
+
+    <!--修改登录次数-->
+	<update id="updateLoginTimes" parameterType="user">
+      update t_user set  loginTimes=#{loginTimes},frequency=#{frequency} where id=#{id}
+	</update>
+	<!--密码登录错误时错误登录次数加1-->
+	<update id="updateerrorcount" parameterType="int">
+         update t_user set errorcount=errorcount+1 where id=#{value}
+	</update>
+
+	<!--按用户名查询,看注册的用户是否存在-->
+	<select id="findlist" parameterType="user" resultMap="productMap">
+		select id,username,userPassword,salt,loginTimes,frequency,errorcount,errorloginTimes from t_user where username=#{userName}
+	</select>
+
+    <!--当错误时间为空时,给错误次数重置为1,并且修改错误的登录时间-->
+	<update id="updatErrorcount">
+         update t_user set errorcount=1,errorloginTimes=#{errorTimes} where id=#{id}
+	</update>
+
+	<!--上次登录时间在当前时间的前面,在同一天次数就+1,错误时间更新-->
+	<update id="updateCount">
+         update t_user set errorcount=errorcount+1,errorloginTimes=#{errorTimes} where id=#{id}
+	</update>
+	<!--当登录俩次都是错误的,隔一天后再对登录就把数据库中的次数重置为0-->
+	<update id="updatecount" parameterType="int">
+         update t_user set errorcount=0 where id=#{value}
+	</update>
+	<!--//锁定该用户,把状态重置为0-->
+	<update id="updateStatus" parameterType="int">
+         update t_user set status=1 where id=#{value}
+	</update>
+
+	<!--解锁-->
+	<update id="updateUserLoginStatus" parameterType="int">
+	update t_user set status=0,errorcount=0 where id=#{id}
+</update>
+	<!-- 查询总条数 -->
+	<select id="findUserCount" resultType="long" parameterType="user">
+		select count(*) from t_user u
+		     left join t_dept d on u.deptid=d.id
+		<include refid="userWhere"></include>
+	</select>
+	<!--查看用户信息  -->
+	<select id="findUserList" resultMap="productMap" parameterType="user">
+	select t.*
+		from(
+		select u.id,u.username,u.userPassword,u.status,u.userRealName,u.birthday,u.sex,u.salary,d.deptName,u.deptid,u.headerPath from t_user u
+		    left join t_dept d on u.deptid=d.id
+		<include refid="userWhere"></include>
+		order by id desc
+		)t
+		limit #{start},#{length}
+	</select>
+	<!--where条件  -->
+	<sql id="userWhere">
+		<where>
+			<if test="userName!=null and userName!=''">
+				username like concat('%',#{userName},'%')
+			</if>
+
+			<!-- 薪资范围 -->
+			<if test="minsalary!=null and minsalary>=0">
+				and salary>=#{minsalary}
+			</if>
+			<if test="maxsalary!=null and maxsalary>=0">
+				and salary &lt;=#{maxsalary}
+			</if>
+
+			<!-- 当前时间范围 -->
+			<if test="minbirthday !=null">
+				and birthday >= #{minbirthday}
+			</if>
+			<if test="maxbirthday !=null">
+				and birthday &lt;= #{maxbirthday}
+			</if>
+
+			<!--部门的条件查询-->
+			<if test="deptIdList!=null and deptIdList.size()>0">
+				  and deptid in
+				  <foreach collection="deptIdList" item="deptid" open="(" close=")" separator=",">
+                    #{deptid}
+				  </foreach>
+
+			</if>
+
+		</where>
+	</sql>
+
+	<!--//批量删除-->
+	<delete id="deleteUser" parameterType="list">
+		delete from t_user where id in
+		  <foreach collection="list" item="a" open="(" close=")" separator=",">
+			  #{a}
+		  </foreach>
+	</delete>
+
+    <!--修改-->
+    <update id="updateUser" parameterType="user">
+      update t_user set
+        username=#{userName},userRealName=#{userRealName},birthday=#{birthday},sex=#{sex},salary=#{salary},deptid=#{deptid},headerPath=#{headerPath}
+          where id=#{id}
+
+    </update>
+
+	<!--批量用户修改部门-->
+	<update id="updatebatch">
+		update t_user set deptid=#{deptid}
+		  where id in
+		    <foreach collection="idList" open="(" close=")" separator="," item="id">
+               #{id}
+			</foreach>
+	</update>
+
+
+	<!--//根据id集合查询所有的用户-->
+	<select id="findUserByDeptId" resultType="user">
+	select u.id,u.username,u.userPassword,u.status,u.userRealName,u.birthday,u.sex,u.salary,d.deptName,u.deptid from t_user u
+		    left join t_dept d on u.deptid=d.id
+			where deptid in
+			   <foreach collection="list" item="deptid" open="(" close=")" separator=",">
+				   #{deptid}
+			   </foreach>
+
+
+
+	</select>
+	<!--//查询用户对应的头像-->
+	<select id="findUserByImage" parameterType="int" resultMap="productMap">
+		select * from t_user where id=#{v}
+	</select>
+	<!--//删除用户-->
+	<delete id="deleteUserById">
+		delete from t_user where id=#{g}
+	</delete>
+	<!--用户修改回显-->
+	<select id="toupdateUser" parameterType="int" resultMap="productMap">
+		select u.id,u.username,u.userRealName,u.birthday,u.sex,u.salary,d.deptName,u.deptid,u.headerPath from t_user u
+		    left join t_dept d on u.deptid=d.id
+		       where u.id=#{value}
+	</select>
+
+
+</mapper>

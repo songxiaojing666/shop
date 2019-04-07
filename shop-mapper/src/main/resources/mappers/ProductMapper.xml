@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC  
+    "-//mybatis.org//DTD Mapper 3.0//EN"  
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd"> 
+
+<!--namespace="对应的是持久层的接口类路径【切记路径到它的类那】"-->  
+<mapper namespace="com.fh.shop.backend.mapper.product.IProductMapper">
+	<!--  1.id对应的是接口中的方法【parameterType=""传递参数】 
+	2.【返回值:resultType=""】
+	3.通过#{}来获取对应属性的属性值
+	4.参数多时把它当成javabean中的一个属性。
+	5.insert into 表名 (数据库中的字段名) values (#{实体类中的字段名1},#{实体类中的字段名2},#{实体类中的字段名3})
+	【!!!!!!!!!!字段名可以和实体类中的属性名不一样】
+	-->
+	<!--1.将表里面的字段和对应的javabean中的属性进行映射【查询】
+	  2.给表中的字段起别名，使别名和属性名保持一致。
+	 -->
+	<!-- type指明javabean -->
+	<resultMap id="productMap" type="product">
+	    <!--column对应的是字段名【property对应的是属性名】  -->
+		<result column="id" property="id"/>
+		<result column="productName" property="productName"/>
+		<result column="insertDate" property="insertDate"/>
+		<result column="productPrice" property="productPrice"/>
+		<result column="brandName" property="brand.brandname"/>
+		<result column="brandid" property="brand.id"/>
+		<result column="image" property="image"/>
+	</resultMap>
+	<!--使用接口展示数据让用户看-->
+	<select id="list" resultType="product" resultMap="productMap">
+    select p.id,p.productName,p.productPrice,b.brandName,p.image from t_product p
+	                  left join t_brand b on p.brandid=b.id
+	</select>
+
+	
+	<sql id="productwhere">
+	     <where>
+	       <if test="productName!=null and productName!=''">
+	           productName  like concat('%',#{productName},'%')
+	       </if>
+	       <!-- 价格范围 -->
+	       <if test="minprice!=null and minprice>=0">
+	           and productPrice>=#{minprice}
+	       </if>
+	       <if test="maxprice!=null and maxprice>=0">
+	           and productPrice &lt;=#{maxprice}
+	       </if>
+	       
+	       <!-- 当前时间范围 -->
+	       <if test="mininsertDate !=null">
+	           and p.insertDate >= #{mininsertDate}
+	       </if>
+	        <if test="maxinsertDate !=null">
+	           and p.insertDate &lt;= #{maxinsertDate}
+	       </if>
+	       <!-- 修改时间范围 -->
+	       <if test="minupdateDate !=null and minupdateDate !=''">
+	           and p.updateDate>=#{minupdateDate}
+	       </if>
+	        <if test="maxupdateDate !=null and maxupdateDate !=''">
+	           and p.updateDate &lt;=#{maxupdateDate}
+	       </if>
+	        <if test="brand.id !=null and brand.id !=-1">
+	           and brandid =#{brand.id}
+	       </if>
+	       </where>
+	</sql>
+
+	<!-- 查询 -->
+	<select id="querylist"  resultMap="productMap" resultType="product"><!-- resultMap对应的是resultMap标签中id名称 -->
+	     select t.* from(select p.id,p.productName,p.productPrice,p.insertDate,p.updateDate,b.brandName,p.image from t_product p
+	                  left join t_brand b on p.brandid=b.id
+	      <include refid="productwhere"></include> 
+	      <!-- 排序价格和时间 -->
+	       <if test="sortfield!=null and sortfield!=''">
+	           order by ${sortfield} ${sort}
+	       </if>
+	       <!-- 调用上面的条件查询中起的id -->
+	      <if test="sortfield==null or sortfield==''">
+	           order by id desc
+	       </if>
+	        )t
+	           limit #{startPos},#{pageSize}
+	</select>
+	<!-- 删除 【传参可以用int也可以用java.lang.Integer】-->
+	<delete id="deleteproduct" parameterType="int">
+	   delete from t_product where id=#{value}
+	</delete>
+	<!-- 批量删除 -->
+	<delete id="deleteBatch" parameterType="list">
+	     delete from t_product where id in
+	     <foreach collection="list" item="a" open="(" close=")" separator=",">
+	      #{a}
+	     </foreach>
+	</delete>
+	<!-- 回显 -->
+	<select id="toupdaproduct"  parameterType="int"   resultMap="productMap">
+	    select id,productName,productPrice,brandid,image from t_product where id=#{value}
+	</select>
+	<!-- 修改 -->
+	<update id="updateproduct" parameterType="product">
+	     update t_product set productName=#{productName},productPrice=#{productPrice},updateDate=#{updateDate},brandid=#{brand.id},image=#{image} where id=#{id}
+	</update>
+	
+	<!-- 获取分页的总条数 -->
+	<select id="pagecountproduct" parameterType="product" resultType="long">
+	     select count(*) from t_product p
+	                  left join t_brand b on p.brandid=b.id
+	    <include refid="productwhere"></include>  <!-- 调用上面的条件查询中起的id -->
+	</select>
+	<!--动态导出Excel表有条件查询但是没有分页的查询-->
+	<select id="exportExcelproduct"  resultMap="productMap" resultType="product"><!-- resultMap对应的是resultMap标签中id名称 -->
+		select p.id,p.productName,p.productPrice,p.insertDate,p.updateDate,b.brandName from t_product p
+		left join t_brand b on p.brandid=b.id
+		<include refid="productwhere"></include>
+	</select>
+
+	<!-- 新增 -->
+	<insert id="addproduct" parameterType="product">
+		<selectKey keyProperty="id" order="AFTER" resultType="int">
+		select last_insert_id()
+		</selectKey>
+		insert into t_product (productName,productPrice,insertDate,updateDate,brandid,image) values (#{productName},#{productPrice},#{insertDate},#{updateDate},#{brand.id},#{image})
+	</insert>
+	<!--添加多张图片-->
+	<insert id="addProductChildImage" parameterType="com.fh.shop.backend.po.product.ProductImage">
+		insert into t_image (imagePath,proudctId) values (#{imagePath},#{proudctId})
+	</insert>
+
+    <!--查询子图片-->
+	<select id="queryproductImage" parameterType="int"  resultType="productImage">
+		 select id,imagePath,proudctId from t_image where proudctId=#{value}
+	</select>
+
+</mapper>

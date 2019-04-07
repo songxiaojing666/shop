@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://java.sun.com/xml/ns/javaee" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd" id="WebApp_ID" version="3.0">
+  <display-name>Archetype Created Web Application</display-name>
+  <!-- 通过ContextLoaderListener去加载spring的配置文件 -->
+  <context-param>
+    <param-name>contextConfigLocation</param-name>
+    <param-value>
+      classpath:spring/spring-biz.xml
+    </param-value>
+  </context-param>
+  <listener>
+    <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+  </listener>
+
+
+
+  <!-- 处理中文乱码 -->
+  <filter>
+    <filter-name>fhFilter</filter-name>
+    <filter-class>
+      org.springframework.web.filter.CharacterEncodingFilter
+    </filter-class>
+    <init-param>
+      <param-name>encoding</param-name>
+      <param-value>utf-8</param-value>
+    </init-param>
+    <init-param>
+      <param-name>forceEncoding</param-name>
+      <param-value>false</param-value>
+    </init-param>
+  </filter>
+
+
+  <filter-mapping>
+    <filter-name>fhFilter</filter-name>
+    <!-- 这里对应的是请求的后缀   ,,,   为 .fh的后缀方法编码都改为utf-8-->
+    <url-pattern>*.jhtml</url-pattern>
+  </filter-mapping>
+
+  <!--配置WebContextFilter类【ThreadLocal和Filter连用获取request对象】-->
+  <filter>
+    <filter-name>WebContextFilter</filter-name>
+    <filter-class>com.fh.shop.backend.common.WebContextFilter</filter-class>
+  </filter>
+  <filter-mapping>
+    <filter-name>WebContextFilter</filter-name>
+    <url-pattern>*.jhtml</url-pattern>
+  </filter-mapping>
+
+  <!-- springMvc的前端总控制器 -->
+  <servlet>
+    <!-- 【fhServlet】可以改变但是要和下面的对应 -->
+    <servlet-name>fhServlet</servlet-name>
+    <!-- 不可以改变里面的是Spring里面的一个类 -->
+    <servlet-class>
+      org.springframework.web.servlet.DispatcherServlet
+    </servlet-class>
+    <init-param>
+      <param-name>contextConfigLocation</param-name>
+      <param-value>
+        <!--【classpath相当于】 对应的是spring-mvc-controller.xml的路径 -->
+        classpath:spring/spring-mvc-controller.xml
+      </param-value>
+    </init-param>
+  </servlet>
+  <servlet-mapping>
+    <!-- 【fhServlet】可以改变但是要和上面的对应 -->
+    <servlet-name>fhServlet</servlet-name>
+    <!-- 后缀名为.fh的请求    才可以走核心控制器【可以改变】-->
+    <url-pattern>*.jhtml</url-pattern>
+  </servlet-mapping>
+
+  <!--配置验证码Servlet类-->
+  <servlet>
+    <servlet-name>imgCode</servlet-name>
+    <servlet-class>com.fh.shop.backend.Servlet.ImageCodeServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <!--和上面对应-->
+    <servlet-name>imgCode</servlet-name>
+    <!--可以直接访问http://localhost:8080/a/b/c-->
+    <!--<url-pattern>/a/b/c</url-pattern>-->
+    <url-pattern>/imgcode</url-pattern>
+  </servlet-mapping>
+
+
+
+  <welcome-file-list>
+    <welcome-file>loguser.jsp</welcome-file>
+  </welcome-file-list>
+</web-app>

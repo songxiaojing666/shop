@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="GBK"?>
+	<beans xmlns="http://www.springframework.org/schema/beans"  
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+    xmlns:aop="http://www.springframework.org/schema/aop"  
+    xmlns:context="http://www.springframework.org/schema/context" 
+    xmlns:tx="http://www.springframework.org/schema/tx"  
+    xmlns:jpa="http://www.springframework.org/schema/data/jpa"  
+    xmlns:security="http://www.springframework.org/schema/security"  
+    xsi:schemaLocation="  
+        http://www.springframework.org/schema/aop   
+        http://www.springframework.org/schema/aop/spring-aop-4.0.xsd  
+        http://www.springframework.org/schema/security   
+        http://www.springframework.org/schema/security/spring-security-3.2.xsd  
+        http://www.springframework.org/schema/beans   
+        http://www.springframework.org/schema/beans/spring-beans-4.0.xsd  
+        http://www.springframework.org/schema/data/jpa   
+        http://www.springframework.org/schema/data/jpa/spring-jpa-1.3.xsd  
+        http://www.springframework.org/schema/tx   
+        http://www.springframework.org/schema/tx/spring-tx-4.0.xsd  
+        http://www.springframework.org/schema/context   
+        http://www.springframework.org/schema/context/spring-context-4.0.xsd">
+    <!-- 【1.】加载属性文件 【属性文件的好处{简单,明了}】   【相对于 source类型 的文件夹来说的    {也可以说是源文件夹}】-->
+    <!--【2.】location=""的路径指的是属性文件夹的路径(datasource.properties前缀可以改变但是后缀名.properties不能改变)  -->
+    <context:property-placeholder location="classpath:datasource.properties"/>
+
+
+    <!-- 配置数据源 -->
+    <bean id="dataBaseInfo" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
+        <!-- 使用的是属性注入【有两种方式】
+                         属性值是基本数据类型【String】
+			1.<property name="属性名" value="属性值"/>它也可以是双标签
+			  <property  name="属性名" value="属性值"/></property>
+			2.<property name="属性名">
+				<value>属性值</value>
+			</property>
+        -->
+        <!--name可以改但是不建议改因为改的话 源代码也要改 -->
+        <property name="url">
+            <!-- 调用的是属性文件中的key也相当于获得value值 -->
+            <value>${jdbc.dbcp.url}</value>
+        </property>
+        <!--name可以改但是不建议改因为改的话 源代码也要改 -->
+        <property name="driverClassName">
+            <value>${jdbc.driverClassName}</value>
+        </property>
+        <!--name可以改但是不建议改因为改的话 源代码也要改 -->
+        <property name="username">
+            <value>${jdbc.username}</value>
+        </property>
+        <!--name可以改但是不建议改因为改的话 源代码也要改 -->
+        <property name="password">
+            <value>${jdbc.password}</value>
+        </property>
+        <!-- 连接池中的最大的连接数 -->
+        <property name="maxActive">
+            <value>${jdbc.maxActive}</value>
+        </property>
+        <!-- 最大等待的时间 (单位:毫秒) -->
+        <property name="maxWait">
+            <value>${jdbc.maxWait}</value>
+        </property>
+    </bean>
+
+
+    <!--属性值是复合数据类型【数组，java对象】  -->
+    <!--<property name="属性名" ref="bean的id"/> -->
+    <!--<property name="属性名" ref="bean的id"></property>  -->
+
+    <!--生成sqlSession -->
+    <bean id="sqlSession" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <!--ref="dataBaseInfo"引用的是上面的配置数据源的id名称
+               【name="dataSource"引用的是org.mybatis.spring.SqlSessionFactoryBean中的属性】  -->
+        <property name="dataSource" ref="dataBaseInfo" />
+        <!--  自动查找myBatis的xml配置文件，省掉sqlMapConfig.xml里的mappers手工配置 -->
+        <!--name调用的是类中的属性【value="classpath:mappers/*.xml"指明写sql语句的xml文件】  -->
+        <property name="mapperLocations" value="classpath:mappers/*.xml" />
+        <!-- 为 com.fh.model所有的实体bean自动创建别名。Book:book  UserInfo:userInfo-->
+        <!-- name调用的是类中的属性【value="com.fh.shop.backend.po"指明的是实体类的路径只能到包的路径】
+                 这样就可以在写sql时直接传一个类的属性名
+         -->
+        <property name="typeAliasesPackage" value="com.fh.shop.backend.po"></property>
+    </bean>
+
+
+    <!-- 通过 MapperScannerConfigurer自动扫描指定basePackage中的所有的接口，并且
+      把sqlSession与接口结合-->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <!--name调用的是类中的属性  【value="com.fh.shop.backend.mapper"】指明的是mapper的包的路径  -->
+        <!-- 扫描所有包下的包下的类 -->
+        <property name="basePackage" value="com.fh.shop.backend.mapper" />
+        <property name="sqlSessionFactoryBeanName" value="sqlSession" />
+    </bean>
+</beans>

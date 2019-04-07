@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC  
+    "-//mybatis.org//DTD Mapper 3.0//EN"  
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd"> 
+
+<!--namespace="对应的是持久层的接口类路径【切记路径到它的类那】"-->  
+<mapper namespace="com.fh.shop.backend.mapper.dept.IDeptMapper">
+	<!-- 查询 -->
+	<select id="findDeptList" resultType="dept">
+	   select id,fatherid,deptName,remark from t_dept
+	</select>
+    <!--新增-->
+	<insert id="addDept" parameterType="dept">
+        <selectKey keyProperty="id" order="AFTER" resultType="int">
+            select last_insert_id()
+        </selectKey>
+		insert into t_dept (fatherid,deptName,remark) values(#{fatherid},#{deptName},#{remark})
+	</insert>
+	<!--如果删除的id是父节点的话 它的子节点的父节点都是当前id
+       所以根据父节点查看-->
+	<select id="findDeptById" resultType="dept" parameterType="int">
+	   select id,fatherid,deptName from t_dept where fatherid=#{value}
+	</select>
+	<!--删除项目-->
+	<delete id="deleteDept">
+	     delete from t_dept where id in
+	        <foreach collection="list" item="aa" separator="," open="(" close=")">
+               #{aa}
+			</foreach>
+    </delete>
+
+	<!--修改-->
+	<update id="editDeptDlg" parameterType="dept">
+	  update t_dept set deptName = #{deptName},remark=#{remark} where id = #{id}
+	</update>
+
+	<!--//查询有几个sheet页并且取出来名称-->
+	<!--根据选中的节点的子节点id查看子节点信息-->
+	<select id="deptExcelList" resultType="dept">
+		select id,fatherid,deptName,remark from t_dept where id in
+		<foreach collection="list" item="id" open="(" close=")" separator=",">
+			#{id}
+		</foreach>
+	</select>
+
+
+	<!--根据父节点查看-->
+	<select id="findDeptByFatherId" parameterType="int" resultType="dept">
+	select id,fatherid,deptName,remark from t_dept where fatherid=#{value};
+</select>
+
+
+
+
+
+
+
+
+
+
+
+
+
+</mapper>

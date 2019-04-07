@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC  
+    "-//mybatis.org//DTD Mapper 3.0//EN"  
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd"> 
+
+<!--namespace="对应的是持久层的接口类路径【切记路径到它的类那】"-->  
+<mapper namespace="com.fh.shop.backend.mapper.log.ILogMapper">
+	<!-- 新增 -->
+	<insert id="addlog" parameterType="log">
+	    insert into t_logs (id,userName,info,status,createTime,executeTime,usercontent) values
+	    (#{id},#{userName},#{info},#{status},#{createTime},#{executeTime},#{usercontent}
+	    )
+	</insert>
+
+	<resultMap id="logMap" type="log">
+		<!--column对应的是字段名【property对应的是属性名】  -->
+		<result column="id" property="id"/>
+		<result column="userName" property="userName"/>
+		<result column="info" property="info"/>
+		<result column="status" property="status"/>
+		<result column="createTime" property="createTime"/>
+		<result column="executeTime" property="executeTime"/>
+		<result column="usercontent" property="usercontent"/>
+	</resultMap>
+	<sql id="logWhere">
+		<where>
+			<if test="userName!=null and userName!=''">
+				userName like concat('%',#{userName},'%')
+			</if>
+
+
+
+			<if test="status==0 || status==1">
+				status = #{status}
+			</if>
+
+
+
+
+
+
+
+			<if test="mincreateTime!=null">
+				and createTime >= #{mincreateTime}
+			</if>
+			<if test="maxcreateTime!=null">
+				and createTime &lt;= #{maxcreateTime}
+			</if>
+
+			<if test="minexecuteTime!=null">
+				and executeTime >= #{minexecuteTime}
+			</if>
+			<if test="maxexecuteTime!=null">
+				and executeTime &lt;= #{maxexecuteTime}
+			</if>
+
+		</where>
+	</sql>
+
+	<!-- 获取分页的总条数 -->
+	<select id="listlog" parameterType="log" resultType="long">
+		select count(*) from t_logs
+	</select>
+	<!-- 普通的条件查询和查询   -->
+	<select id="findlog" parameterType="log" resultType="log">
+		select t.*
+		from(select id,userName,info,status,createTime,executeTime,usercontent from t_logs
+		<include refid="logWhere"></include>
+		<!-- 将id进行降序排列 -->
+		order by id desc
+		)t
+		limit #{startPos},#{pageSize}
+	</select>
+
+</mapper>

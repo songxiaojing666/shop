@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC  
+    "-//mybatis.org//DTD Mapper 3.0//EN"  
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd"> 
+
+<!--namespace="对应的是持久层的接口类路径【切记路径到它的类那】"-->  
+<mapper namespace="com.fh.shop.backend.mapper.image.IImageMapper">
+    <!--查询多张图片并带值返回-->
+    <select id="findImageById" parameterType="list" resultType="productImage">
+        select imagePath,proudctId from t_image where id in
+        <foreach collection="list" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </select>
+    <!--删除子图片的数据库路径-->
+    <delete id="deletePach" parameterType="list">
+        delete from t_image where id in
+        <foreach collection="list" item="aa" open="(" separator=","  close=")">
+            #{aa}
+        </foreach>
+    </delete>
+    <!-- //批量插入子页面-->
+    <insert id="addBatchImage">
+        insert into t_image (imagePath,proudctId)
+          values
+        <foreach collection="list" item="productImage"  separator="," >
+            (#{productImage.imagePath},#{productImage.proudctId})
+        </foreach>
+    </insert>
+
+</mapper>

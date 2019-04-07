@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC  
+    "-//mybatis.org//DTD Mapper 3.0//EN"  
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd"> 
+
+<!--namespace="对应的是持久层的接口类路径【切记路径到它的类那】"-->  
+<mapper namespace="com.fh.shop.backend.mapper.post.IPostMapper">
+	<!--where条件  -->
+	<sql id="postWhere">
+		<where>
+			<if test="userName!=null and userName!=''">
+				userName like concat('%',#{userName},'%')
+			</if>
+
+
+			<!-- 当前时间范围 -->
+			<if test="minbirthday !=null">
+				and birthday >= #{minbirthday}
+			</if>
+			<if test="maxbirthday !=null">
+				and birthday &lt;= #{maxbirthday}
+			</if>
+
+			<if test="areaIds!='' and areaIds!=null">
+				and areaIds like concat(#{areaIds},'%')
+			</if>
+
+		</where>
+	</sql>
+
+	<!-- 查询 -->
+	<!--<select id="findPostList" resultType="post">-->
+		<!--select t.*-->
+		<!--from(-->
+		<!--select p.id,userName,phone,email,birthday,regTime,lastLoginTime, a.name province,b.name city,d.name country-->
+		<!--from t_post p-->
+		    <!--left join province_city_county a on p.shengid=a.id-->
+		    <!--left join province_city_county b onp.shiid=b.id-->
+		    <!--left join province_city_county d on p.xianid = d.id-->
+		<!--<include refid="postWhere"></include>-->
+		<!--order by id desc-->
+		<!--)t-->
+		<!--limit #{start},#{length}-->
+
+
+	<!--</select>-->
+
+	<select id="findPostList" resultType="post">
+		select t.*
+		from(
+		select id,userName,phone,email,birthday,regTime,lastLoginTime,address
+		from t_post
+		<include refid="postWhere"></include>
+		order by id desc
+		)t
+		limit #{start},#{length}
+
+
+	</select>
+
+	<!-- 查询总条数 -->
+	<select id="findPostCount" resultType="long" parameterType="post">
+		select count(*) from t_post p
+		left join province_city_county a on p.shengid=a.id left join province_city_county b on
+		p.shiid=b.id left join province_city_county d on p.xianid = d.id
+		<include refid="postWhere"></include>
+	</select>
+
+	<!--查询地区信息-->
+	<select id="findAreaList" parameterType="int" resultType="area">
+	 select * from province_city_county where pid = #{value}
+    </select>
+
+	<!--修改回显-->
+	<select id="toupdapost" parameterType="int" resultType="post">
+		select id,userName,phone,email,birthday,address from t_post where id=#{value}
+	</select>
+
+	<!--修改-->
+	<update id="updatepost" parameterType="post">
+	update t_post set userName=#{userName},email=#{email},
+	birthday=#{birthday},address=#{address},areaIds=#{areaIds} where id=#{id}
+</update>
+
+
+</mapper>

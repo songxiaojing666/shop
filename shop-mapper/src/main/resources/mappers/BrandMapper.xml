@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC  
+    "-//mybatis.org//DTD Mapper 3.0//EN"  
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd"> 
+
+<!--namespace="对应的是持久层的接口类路径【切记路径到它的类那】"-->  
+<mapper namespace="com.fh.shop.backend.mapper.brand.IBrandMapper">
+	<!--  1.id对应的是接口中的方法【parameterType=""传递参数】 
+	2.【返回值:resultType=""】
+	3.通过#{}来获取对应属性的属性值
+	4.参数多时把它当成javabean中的一个属性。
+	5.insert into 表名 (数据库中的字段名) values (#{实体类中的字段名1},#{实体类中的字段名2},#{实体类中的字段名3})
+	【!!!!!!!!!!字段名可以和实体类中的属性名不一样】
+	-->
+	<!-- 条件查询 -->
+	<sql id="pagetable">
+	   <where>
+	       <if test="brandname!=null and brandname!=''">
+	           brandName like concat('%',#{brandname},'%')
+	       </if>
+	       
+	       <if test="mininsertDate!=null and mininsertDate!=''">
+	           and insertDate>=#{mininsertDate}
+	       </if>
+	       <if test="maxinsertDate!=null and maxinsertDate!=''">
+	            and insertDate &lt;=#{maxinsertDate}
+	       </if>
+	       
+	       <if test="minupdateDate!=null and minupdateDate!=''">
+	           and updateDate>=#{minupdateDate}
+	       </if>
+	       <if test="maxupdateDate!=null and maxupdateDate!=''">
+	            and updateDate &lt;=#{maxupdateDate}
+	       </if>
+	       
+	   </where>
+	
+	</sql>
+	<!-- 获取分页的总条数 -->
+	<select id="findsearch" parameterType="brand" resultType="long">
+	     select count(*) from t_brand
+	     <include refid="pagetable"></include>
+	</select>
+	
+	<!-- 查询 -->
+	<select id="querylistbrand" parameterType="brand" resultType="brand">
+	   select t.*
+	    from(select id,brandname brandName,insertDate,updateDate from t_brand
+	    <include refid="pagetable"></include>
+		<!-- 排序价格和时间 -->
+		<if test="sortfield!=null and sortfield!=''">
+			order by ${sortfield} ${sort}
+		</if>
+		<!-- 调用上面的条件查询中起的id -->
+		<if test="sortfield==null or sortfield==''">
+			order by id desc
+		</if>
+	    )t
+	    limit #{startPos},#{pageSize}
+	</select>
+	<!-- 新增 -->
+	<insert id="addlistbrand" parameterType="brand">
+	    insert into t_brand (brandName,insertDate,updateDate) values (#{brandname},#{insertDate},#{updateDate})
+	    <!-- insert into t_brand  values (#{brandname},#{insertDate},#{updateDate}) -->
+	</insert>
+	<!-- 删除 -->
+	<delete id="deletelistbrand" parameterType="int">
+	      delete from t_brand where id=#{value}
+	</delete>
+	<!-- 批量删除 -->
+	<delete id="deletemore" parameterType="list">
+	      delete from t_brand where id in
+	      <foreach collection="list" item="a" open="(" close=")" separator=",">
+	        #{a}
+	      </foreach>
+	</delete>
+	<!-- 回显 -->
+	<select id="brandtoupdate" parameterType="int" resultType="brand">
+	     select id,brandName,updateDate from t_brand where id=#{value}
+	</select>
+	<!-- 修改【id=#{对应属性名}】传过来是实体类对应的就是属性名 -->
+	<update id="updatelistbrand" parameterType="brand">
+	    update t_brand set brandName=#{brandname},updateDate=#{updateDate} where id=#{id}
+	</update>
+	<!-- 普通的品牌查询做动态下拉框 -->
+	<select id="listbrand" resultType="brand">
+	   select id,brandName brandname,insertDate,updateDate from t_brand
+	</select>
+	
+</mapper>
